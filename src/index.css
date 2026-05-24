@@ -1,0 +1,337 @@
+/* ===================================
+   Gantt Chart Add-in — Global Styles
+   =================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f6f8;
+  --bg-tertiary: #eaebed;
+  --text-primary: #1a1a2e;
+  --text-secondary: #5a5a7a;
+  --text-muted: #9090a8;
+  --border-color: #dcdce4;
+  --border-light: #ececf2;
+  --accent: #4A90D9;
+  --accent-hover: #357ABD;
+  --danger: #E74C3C;
+  --toolbar-height: 40px;
+  --panel-width: 260px;
+  --font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-sm: 11px;
+  --font-size: 12px;
+  --font-size-lg: 13px;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: var(--font-size-lg);
+}
+
+/* ---------- Task Pane Shell Layout ---------- */
+
+.taskpane-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.taskpane-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---------- Toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--toolbar-height);
+  padding: 0 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+.toolbar__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size);
+  transition: background 0.1s;
+}
+
+.toolbar__btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.toolbar__btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.toolbar__btn--text {
+  width: auto;
+  padding: 0 8px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.toolbar__btn--primary-outline {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.toolbar__btn--primary-outline:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.toolbar__font-select {
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.toolbar__font-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.toolbar__mode-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  padding: 0 4px;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* ---------- Canvas Area ---------- */
+
+.canvas-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-primary);
+  cursor: default;
+}
+
+/* ---------- Property Panel ---------- */
+
+.property-panel {
+  width: var(--panel-width);
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 12px;
+}
+
+.property-panel__title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.property-panel__empty {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.property-group {
+  margin-bottom: 12px;
+}
+
+.property-group__label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.property-group__input {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: var(--font-size);
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.property-group__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.property-group__color {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.property-color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+
+.property-color-swatch:hover,
+.property-color-swatch.selected {
+  border-color: var(--text-primary);
+}
+
+/* ---------- Export Dialog ---------- */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.dialog__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dialog__btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--font-size);
+}
+
+.dialog__btn--primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.dialog__btn--primary:hover {
+  background: var(--accent-hover);
+}
+
+/* ---------- Status Toast ---------- */
+
+.status-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  color: #ffffff;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: var(--font-size-sm);
+  z-index: 200;
+  pointer-events: none;
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ---------- Scrollbar ---------- */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
