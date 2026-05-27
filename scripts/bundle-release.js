@@ -147,6 +147,10 @@ async function main() {
   console.log(`  Reduction: ${((1 - totalSize / 66000000) * 100).toFixed(0)}%`);
   console.log('\n  To run: double-click gantt-chart.exe');
   console.log('  Requires: WebView2 Runtime (built into Windows 10+)');
+
+  console.log('\n  Single-file EXE: use 7-Zip or WinRAR to convert to SFX');
+  console.log('    7-Zip: right-click release/gantt-chart/ folder → 7-Zip → Add to archive');
+  console.log('           Check "Create SFX archive", set "Run after extraction": gantt-chart.exe');
 }
 
 function findFile(dir, name) {

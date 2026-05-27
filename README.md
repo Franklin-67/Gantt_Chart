@@ -1,6 +1,6 @@
 # Gantt Chart - 甘特图桌面应用
 
-一个功能强大的甘特图桌面应用程序，基于 Electron + React + Canvas 构建，提供直观的可视化项目管理体验。
+一个轻量级甘特图桌面应用，基于 **Neutralinojs + React + Canvas** 构建，单个可执行文件仅 **~1 MB**。
 
 ![Gantt Chart Screenshot](assets/screenshot.png)
 
@@ -9,56 +9,66 @@
 ### 核心功能
 
 - **交互式甘特图绘制**
-  - 拖拽调整任务条
-  - 实时缩放和平移
+  - 点击空区域创建任务条 ▬
+  - 单击创建里程碑 ◆
+  - 拖拽调整任务条位置和时长
   - 任务依赖关系可视化
-  - 任务栏颜色自定义
+  - 实时缩放（工具栏 +/- 按钮）
+  - 今日标记线
 
 - **灵活的时间轴**
-  - 多层级时间刻度（年、月、周、日）
-  - 智能日期范围显示
-  - 今日标记线
-  - 自动适应视图范围
+  - 多层级时间刻度（年、月、周、日，智能隐藏）
+  - 日期范围快速选择（1/3/6/12 个月或全部）
+  - 时间轴字体大小可调
 
 - **泳道管理**
   - 多层级泳道结构
-  - 自定义泳道标题
-  - 折叠/展开功能
-  - 动态高度调整
+  - 自定义泳道名称
+  - 拖拽重排泳道顺序
 
 - **数据导入导出**
-  - Excel 数据导入
-  - Excel 图表导出
-  - PNG 图片导出
-  - SVG 矢量图形导出
+  - Excel 数据导入（支持中英文列名）
+  - Excel 数据导出（任务、里程碑、依赖、泳道）
+  - PNG/JPEG 图片导出（1x/2x/3x 分辨率）
 
 ### 用户体验
 
-- 🎨 现代化 UI 设计
-- ⚡ 流畅的动画效果
-- ⌨️ 键盘快捷键支持
-- 🔄 实时数据同步
-- 📊 多任务并行显示
+- 🎨 现代化 UI 设计，右侧属性面板实时编辑
+- ⚡ Canvas 分层渲染 + 脏标记调度，极速流畅
+- ⌨️ 键盘快捷键全支持
+- 🔄 自动保存（每 30 秒 + 窗口关闭时）
+- 📊 任务进度滑块、颜色选择器
 
 ## 🛠️ 技术栈
 
 | 技术 | 说明 |
 |------|------|
-| **Electron** | 跨平台桌面应用框架 |
+| **Neutralinojs** | 轻量跨平台桌面框架（~1.6 MB 运行时，不打包 Chromium） |
 | **React 18** | UI 组件库 |
 | **TypeScript** | 类型安全的 JavaScript |
-| **Canvas API** | 高性能图形渲染 |
+| **Canvas API** | 高性能图形渲染（8 层分层渲染） |
 | **Zustand** | 轻量级状态管理 |
 | **XLSX** | Excel 文件处理 |
 | **Webpack** | 模块打包工具 |
+
+### 为什么选择 Neutralinojs？
+
+对比常用的 Electron，体积从天到地：
+
+| | Electron | Neutralinojs |
+|------|:---:|:---:|
+| 运行时 | 打包完整 Chromium (~60 MB) | 使用系统 WebView2 (0 MB) |
+| 单文件体积 | 66 MB | **~1 MB** |
+| 内存占用 | ~150 MB+ | ~50 MB |
+| Canvas 性能 | 取决于 Chromium 版本 | 取决于 Edge WebView2 |
 
 ## 🚀 快速开始
 
 ### 环境要求
 
+- Windows 10/11（内置 WebView2 运行时）
 - Node.js 18.0 或更高版本
 - npm 9.0 或更高版本
-- Windows 10/11 (当前支持)
 
 ### 安装
 
@@ -69,6 +79,9 @@ git clone https://github.com/Franklin-67/Gantt_Chart.git
 # 进入项目目录
 cd Gantt_Chart
 
+# 切换到 Neutralinojs 分支
+git checkout neutralino-migration
+
 # 安装依赖
 npm install
 ```
@@ -76,181 +89,206 @@ npm install
 ### 运行开发版本
 
 ```bash
-# 启动开发服务器
-npm run dev
+npm run neu:dev
 ```
 
-### 构建生产版本
+### 构建发布版本
 
 ```bash
-# 构建应用
-npm run build
+# 一键构建（构建 React + 下载运行时 + 打包）
+npm run neu:build
 
-# 打包为 Windows 便携版
-npm run package
+# 输出文件位于 release/gantt-chart/ 目录：
+#   gantt-chart.exe   1.7 MB   ← 双击运行
+#   resources.neu     0.6 MB   ← 应用资源（自动加载）
 ```
 
-构建完成后，可执行文件位于 `release/` 目录。
+### 合成单文件 EXE
+
+```bash
+# 将两个文件合并为一个（需要 .NET Framework，Windows 自带）
+powershell -File scripts/make-sfx.ps1
+
+# 输出：
+#   release/GanttChart.exe   ~976 KB   ← 单文件，双击即用
+```
+
+### 打包安装程序（可选）
+
+```bash
+# 需要先安装 Inno Setup: https://jrsoftware.org/isdl.php
+# 然后用 scripts/package.iss 编译出标准安装包
+```
+
+## 📦 体积对比
+
+| 版本 | 文件 | 体积 |
+|------|------|:---:|
+| Electron (master 分支) | Gantt Chart.exe | 66 MB |
+| Neutralinojs (当前分支) | gantt-chart.exe + resources.neu | 2.2 MB |
+| Neutralinojs 单文件 | GanttChart.exe | **976 KB** （-98.5%） |
+
+## ⌨️ 快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| `S` | 选择模式 |
+| `B` | 创建任务条模式 |
+| `M` | **创建里程碑模式** |
+| `L` | 创建依赖线模式 |
+| `Delete` | 删除选中任务/里程碑 |
+| `← →` | 左右移动选中项目 |
+| `↑ ↓` | 移动选中项目到上/下泳道 |
 
 ## 📁 项目结构
 
 ```
 gantt-addin/
 ├── src/
-│   ├── components/          # React 组件
-│   │   ├── canvas/         # Canvas 渲染组件
-│   │   │   ├── GanttCanvas.tsx      # 主画布组件
-│   │   │   ├── BarRenderer.tsx      # 任务条渲染
-│   │   │   ├── TimelineHeader.tsx   # 时间轴头部
-│   │   │   ├── GridBackground.tsx   # 网格背景
-│   │   │   ├── DependencyRenderer.tsx  # 依赖关系线
-│   │   │   ├── DragOverlay.tsx      # 拖拽覆盖层
-│   │   │   └── SelectionOverlay.tsx # 选择覆盖层
-│   │   ├── dialogs/       # 对话框组件
-│   │   └── layout/        # 布局组件
-│   ├── engine/             # 渲染引擎
-│   │   ├── export/        # 导出引擎
-│   │   ├── interaction/   # 交互引擎
-│   │   └── renderer/       # 渲染调度
-│   ├── model/              # 数据模型
-│   │   ├── types.ts        # TypeScript 类型定义
-│   │   └── defaults.ts     # 默认配置
-│   ├── services/           # 业务服务
-│   │   ├── excelService.ts        # Excel 操作
-│   │   ├── excelExportService.ts  # 导出服务
-│   │   └── storageService.ts      # 存储服务
-│   ├── store/              # 状态管理
-│   ├── utils/              # 工具函数
-│   └── App.tsx             # 主应用组件
-├── assets/                  # 静态资源
-│   └── icons/             # 应用图标
-├── dist/                   # 构建输出
+│   ├── components/           # React 组件
+│   │   ├── canvas/          # Canvas 渲染（8 层独立图层）
+│   │   │   ├── GanttCanvas.tsx       # 主画布组件
+│   │   │   ├── BarRenderer.tsx       # 任务条渲染
+│   │   │   ├── TimelineHeader.tsx    # 时间轴头部
+│   │   │   ├── GridBackground.tsx    # 网格/周末/假日背景
+│   │   │   ├── DependencyRenderer.tsx # 依赖关系线
+│   │   │   ├── SwimlaneRenderer.tsx  # 泳道行
+│   │   │   ├── LabelRenderer.tsx     # 任务标签
+│   │   │   ├── DragOverlay.tsx       # 拖拽预览
+│   │   │   └── SelectionOverlay.tsx  # 选中高亮
+│   │   ├── dialogs/         # 对话框
+│   │   ├── layout/          # 布局组件
+│   │   └── common/          # 通用组件（ErrorBoundary 等）
+│   ├── engine/               # 渲染引擎
+│   │   ├── renderer/        # LayerManager + RenderScheduler（脏标记调度）
+│   │   ├── interaction/     # InteractionManager + HitTestEngine + DragStateMachine
+│   │   └── export/          # 图片导出引擎
+│   ├── model/                # 数据模型
+│   │   ├── types.ts          # 完整的 TypeScript 类型定义
+│   │   └── defaults.ts       # 默认配置（颜色、尺寸、时间刻度）
+│   ├── services/             # 业务服务
+│   │   ├── excelService.ts           # Excel 导入
+│   │   ├── excelExportService.ts     # Excel/图片导出
+│   │   └── storageService.ts         # 本地持久化（Neutralino storage API）
+│   ├── store/                # Zustand 全局状态
+│   ├── utils/                # 工具函数
+│   ├── types/                # 类型声明（Neutralino 类型等）
+│   ├── App.tsx               # 主应用组件
+│   ├── index.tsx             # 入口文件
+│   └── index.css             # 全局样式
+├── assets/
+│   └── icons/
+├── scripts/
+│   ├── bundle-release.js     # 自动构建脚本（下载运行时 + 打包）
+│   └── make-sfx.ps1          # 单文件 EXE 合成脚本
+├── neutralino.config.json    # Neutralinojs 配置
 ├── package.json
-├── tsconfig.json
 ├── webpack.config.js
+├── .eslintrc.json
 └── README.md
 ```
 
 ## 🎯 使用说明
 
-### 基本操作
+### 创建任务
 
-1. **创建任务**
-   - 点击时间轴空白区域创建新任务
-   - 或使用工具栏的"添加任务"按钮
+1. 点击工具栏 **▬** 按钮（或按 `B`）进入"创建任务"模式
+2. 在时间轴上按住并**拖拽** → 释放后生成一个蓝色任务条
+3. 选中后在右侧属性面板修改名称、日期、进度、颜色
 
-2. **编辑任务**
-   - 双击任务条打开编辑对话框
-   - 修改任务名称、开始日期、结束日期等
+### 创建里程碑
 
-3. **调整任务时长**
-   - 拖拽任务条左右边缘调整开始/结束日期
-   - 拖拽任务条中间部分移动整个任务
+1. 点击工具栏 **◆** 按钮（或按 `M`）进入"创建里程碑"模式
+2. 在时间轴上**单击** → 在该日期生成一个红色菱形◆
+3. 选中后在右侧属性面板修改名称、日期、颜色
 
-4. **设置依赖关系**
-   - 选中任务后，拖拽任务条上的依赖点
-   - 连接到目标任务创建依赖
+### 编辑项目
 
-5. **缩放时间轴**
-   - 使用鼠标滚轮缩放
-   - 或通过工具栏选择时间刻度级别
+- **拖拽**：选中后拖拽任务条整体移动
+- **调整时长**：拖拽任务条左右边缘
+- **删除**：选中后按 `Delete` 键
+- **移动泳道**：拖拽泳道左侧标题区上下移动
 
-### 快捷键
+### 创建依赖关系
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Space` | 开始/暂停任务 |
-| `Delete` | 删除选中任务 |
-| `Ctrl + C` | 复制任务 |
-| `Ctrl + V` | 粘贴任务 |
-| `Ctrl + Z` | 撤销 |
-| `Ctrl + Y` | 重做 |
-| `+/-` | 缩放时间轴 |
-| `←/→` | 左右滚动时间轴 |
+1. 点击工具栏 **↗** 按钮（或按 `L`）
+2. 点击源任务 → 点击目标任务
+3. 依赖线自动生成（完成-开始 FS 类型）
 
 ### 数据导入
 
-1. 点击菜单"文件" → "导入 Excel"
-2. 选择 Excel 文件
-3. 映射列到任务属性
-4. 确认导入
+1. 点击工具栏"导入 Excel"
+2. 选择 `.xlsx/.xls/.csv` 文件
+3. 支持中英文列名自动匹配
 
 ### 数据导出
 
-支持多种导出格式：
-- **Excel 图表**：保留所有数据和格式
-- **PNG 图片**：高分辨率图片
-- **SVG 矢量图**：无损缩放
+| 格式 | 方式 |
+|------|------|
+| **Excel 表格** | 工具栏"导出 Excel" → 保存为 .xlsx |
+| **PNG/JPEG 图片** | 工具栏"导出图片" → 选择分辨率 (1x/2x/3x) → 保存 |
 
 ## 🔧 配置选项
 
 ### 时间轴配置
 
-在 `src/model/defaults.ts` 中修改时间轴默认设置：
+在 `src/model/defaults.ts` 中修改：
 
 ```typescript
-export const DEFAULT_TIME_CONFIG = {
-  pixelsPerDay: 40,        // 每天像素数
-  minPixelsPerDay: 10,     // 最小缩放级别
-  maxPixelsPerDay: 200,    // 最大缩放级别
-  weekStartDay: 1,         // 周起始日 (1=周一)
-};
+export const SWIMLANE_ROW_HEIGHT = 40;        // 泳道行高
+export const SWIMLANE_HEADER_WIDTH = 180;      // 泳道标题宽度
+export const BAR_HEIGHT = 20;                  // 任务条高度
+export const DEFAULT_TIME_SCALES = [           // 时间刻度层级
+  { unit: TimeUnit.Year, height: 22, visible: true },
+  { unit: TimeUnit.Month, height: 24, visible: true },
+  { unit: TimeUnit.Week, height: 20, visible: true },
+  { unit: TimeUnit.Day, height: 20, visible: false }, // 默认隐藏
+];
 ```
 
-### 样式配置
+### 颜色配置
 
-在 `src/model/defaults.ts` 中自定义颜色方案：
-
-```typescript
-export const DEFAULT_COLORS = {
-  primary: '#3b82f6',      // 主色调
-  secondary: '#6366f1',    // 次要色调
-  taskBar: '#10b981',      // 任务条颜色
-  dependency: '#94a3b8',   // 依赖线颜色
-  today: '#ef4444',        // 今日标记颜色
-};
-```
+在 `src/model/defaults.ts` 中自定义配色方案（12 种预设颜色）。
 
 ## 🧪 开发指南
 
 ### 添加新的渲染层
 
-1. 在 `src/components/canvas/` 创建新的渲染组件
-2. 在 `LayerManager` 中注册新图层
-3. 实现 `render()` 方法
+1. 在 `src/components/canvas/` 创建渲染组件
+2. 在 `LayerManager` 的 `LAYER_DEFS` 数组中注册新图层
+3. 在 `GanttCanvas` 的 `LAYER_RENDERERS` 中注册渲染函数
 
-```typescript
-// 示例：自定义渲染层
-export class CustomRenderer {
-  constructor(private ctx: CanvasRenderingContext2D) {}
-  
-  render(state: GanttState, bounds: Rect): void {
-    // 渲染逻辑
-  }
-}
+### 技术架构
+
 ```
-
-### 扩展任务类型
-
-在 `src/model/types.ts` 中定义新的任务类型：
-
-```typescript
-export interface CustomTask extends BaseTask {
-  customProperty: string;
-  metadata?: Record<string, any>;
-}
+用户操作 → InteractionManager（指针/键盘事件）
+         → Store（Zustand 状态更新）
+         → RenderScheduler（脏标记调度）
+         → LayerManager（8 层 Canvas，仅渲染脏层）
+         → 屏幕输出（60fps 流畅渲染）
 ```
 
 ## 📝 更新日志
 
+### v0.2.0 (2026-05-27)
+- ✅ 从 Electron 迁移到 Neutralinojs（体积 66 MB → 2.2 MB）
+- ✅ 新增单文件打包，合成后仅 ~976 KB
+- ✅ 新增里程碑创建功能（工具栏 ◆ 按钮 + M 快捷键）
+- ✅ 新增 React ErrorBoundary 错误边界
+- ✅ 窗口关闭自动保存
+- ✅ 新增 ESLint 配置
+- ✅ 优化日期格式化（消除重复代码）
+- ✅ Electron 版本保留在 master 分支
+
 ### v0.1.0 (2025-05-24)
-- ✅ 完成基础甘特图功能
-- ✅ 实现 Canvas 渲染引擎
-- ✅ 支持任务拖拽和调整
-- ✅ 依赖关系可视化
-- ✅ Excel 导入导出
-- ✅ 多层级时间轴显示
-- ✅ 泳道管理功能
+- ✅ 完成基础甘特图功能（Electron 版本）
+
+## 🌿 分支说明
+
+| 分支 | 框架 | 包体积 |
+|------|------|:---:|
+| `master` | Electron | 66 MB |
+| `neutralino-migration`（当前） | Neutralinojs | ~1 MB |
 
 ## 🤝 贡献指南
 
@@ -264,24 +302,19 @@ export interface CustomTask extends BaseTask {
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 MIT 许可证
 
 ## 👨‍💻 作者
 
 **Franklin-67**
 - GitHub: [https://github.com/Franklin-67](https://github.com/Franklin-67)
 
-## 🙏 致谢
+## 致谢
 
-- [Electron](https://www.electronjs.org/) - 跨平台桌面应用框架
+- [Neutralinojs](https://neutralino.js.org/) - 轻量级桌面应用框架
 - [React](https://react.dev/) - UI 组件库
 - [XLSX](https://sheetjs.com/) - Excel 文件处理库
 - 所有开源贡献者
-
-## 📞 联系方式
-
-如有问题或建议，请通过以下方式联系：
-- GitHub Issues: [https://github.com/Franklin-67/Gantt_Chart/issues](https://github.com/Franklin-67/Gantt_Chart/issues)
 
 ---
 
