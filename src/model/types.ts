@@ -12,6 +12,7 @@ export enum TaskType {
 export enum DragMode {
   Idle = 'idle',
   Create = 'create',
+  CreateMilestone = 'createMilestone',
   Move = 'move',
   ResizeLeft = 'resizeLeft',
   ResizeRight = 'resizeRight',

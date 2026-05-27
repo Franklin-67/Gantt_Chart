@@ -49,18 +49,7 @@ const TaskPaneShell: React.FC = () => {
     }
   }, [showStatus]);
 
-  // Listen to Electron menu events
-  useEffect(() => {
-    const api = (window as any).electronAPI;
-    if (!api) return;
 
-    if (api.onMenuImport) {
-      api.onMenuImport(() => handleImportExcel());
-    }
-    if (api.onMenuExport) {
-      api.onMenuExport(() => setShowExportDialog(true));
-    }
-  }, [handleImportExcel]);
 
   return (
     <div className="taskpane-shell">

@@ -1,0 +1,42 @@
+{
+  "applicationId": "com.gantt.neutralino",
+  "version": "0.2.0",
+  "defaultMode": "window",
+  "port": 0,
+  "documentRoot": "/dist/renderer/",
+  "url": "/index.html",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "tokenSecurity": "one-time",
+  "nativeAllowList": [
+    "app.*",
+    "os.*",
+    "filesystem.*",
+    "storage.*",
+    "window.*",
+    "events.*"
+  ],
+  "modes": {
+    "window": {
+      "title": "Gantt Chart",
+      "width": 1400,
+      "height": 900,
+      "minWidth": 1000,
+      "minHeight": 600,
+      "fullScreen": false,
+      "alwaysOnTop": false,
+      "borderless": false,
+      "maximize": true,
+      "hidden": false,
+      "resizable": true,
+      "exitProcessOnClose": true
+    }
+  },
+  "cli": {
+    "binaryName": "gantt-chart",
+    "resourcesPath": "/dist/renderer/",
+    "extensionsPath": "/extensions/",
+    "clientLibrary": "/node_modules/@neutralinojs/lib/dist/neutralino.js",
+    "binaryVersion": "nightly"
+  }
+}

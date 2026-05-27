@@ -1,5 +1,5 @@
 import { GanttState } from '@/store';
-import { dateToPixel } from '@/utils/dateUtils';
+import { dateToPixel, formatDate } from '@/utils/dateUtils';
 import { TimeUnit } from '@/model/types';
 import { SWIMLANE_HEADER_WIDTH } from '@/model/defaults';
 
@@ -107,7 +107,7 @@ export function renderTimeline(
         const isUnitStart = isStartOfUnit(date, scale.unit, scale.step);
         
         if (isUnitStart) {
-          const label = formatUnitLabel(date, scale.format);
+          const label = formatDate(date, scale.format);
           
           // Generate unique key for tracking
           // For month, include year to allow same month in different years
@@ -232,36 +232,4 @@ function getNextUnitStart(date: Date, unit: TimeUnit, step: number): Date {
   return next;
 }
 
-function formatUnitLabel(date: Date, format: string): string {
-  const y = date.getFullYear();
-  const M = date.getMonth();
-  const d = date.getDate();
-  
-  if (format === 'yyyy年') {
-    return `${y}年`;
-  }
-  if (format === 'M月') {
-    return `${M + 1}月`;
-  }
-  if (format === 'WW') {
-    const weekNum = getWeekNumber(date);
-    return weekNum.toString().padStart(2, '0');
-  }
-  if (format === 'W') {
-    return getWeekNumber(date).toString();
-  }
-  if (format === 'dd') {
-    return d.toString().padStart(2, '0');
-  }
-  if (format === 'd') {
-    return d.toString();
-  }
-  return `${M + 1}/${d}`;
-}
 
-function getWeekNumber(date: Date): number {
-  const start = new Date(date.getFullYear(), 0, 1);
-  const diff = date.getTime() - start.getTime();
-  const oneWeek = 1000 * 60 * 60 * 24 * 7;
-  return Math.ceil(diff / oneWeek);
-}

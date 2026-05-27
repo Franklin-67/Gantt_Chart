@@ -46,6 +46,14 @@ export function transitionDragMode(
       return DragMode.Link;
     }
 
+    // If in CreateMilestone mode — single click on empty area creates milestone
+    if (currentMode === DragMode.CreateMilestone) {
+      if (hit.type === 'empty') {
+        return DragMode.CreateMilestone;
+      }
+      return DragMode.CreateMilestone;
+    }
+
     // If in Create mode and hit empty area
     if (currentMode === DragMode.Create) {
       if (hit.type === 'empty') {

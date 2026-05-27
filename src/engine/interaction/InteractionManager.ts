@@ -44,8 +44,15 @@ export function createInteractionHandlers(
     if (newMode === DragMode.Create && !isRightClick) {
       newMode = DragMode.Idle;
     }
+    if (newMode === DragMode.CreateMilestone && !isRightClick) {
+      // In CreateMilestone mode, any click on empty area starts creating
+      // newMode stays as CreateMilestone
+    }
     if (isRightClick && newMode === DragMode.Idle && state.interaction.dragMode === DragMode.Create) {
       newMode = DragMode.Create;
+    }
+    if (isRightClick && newMode === DragMode.Idle && state.interaction.dragMode === DragMode.CreateMilestone) {
+      newMode = DragMode.CreateMilestone;
     }
 
     // Swimlane header click — track for potential reorder drag
@@ -75,7 +82,7 @@ export function createInteractionHandlers(
       state.setSelection([hit.itemId]);
     } else if (hit.type === 'swimlane-header' && newMode === DragMode.Idle) {
       state.selectSwimlane(hit.swimlaneId || null);
-    } else if (newMode === DragMode.Create || newMode === DragMode.Pan) {
+    } else if (newMode === DragMode.Create || newMode === DragMode.CreateMilestone || newMode === DragMode.Pan) {
       state.clearSelection();
     }
 
@@ -145,6 +152,31 @@ export function createInteractionHandlers(
 
     if (dragMode === DragMode.ReorderSwimlane && state.interaction.reorderSwimlaneId) {
       commitSwimlaneReorder(state, pos.y);
+    }
+
+    if (dragMode === DragMode.CreateMilestone) {
+      // Single click creates a milestone at the cursor date
+      const layout = getSwimlaneLayout(state.swimlanes);
+      let targetSlId = layout[0]?.id ?? '';
+      for (const row of layout) {
+        if (dragOrigin.y >= row.y && dragOrigin.y < row.y + row.height) {
+          targetSlId = row.id;
+          break;
+        }
+      }
+      const canvasX = pos.x - SWIMLANE_HEADER_WIDTH;
+      const { viewStartDate, pixelsPerDay } = state.timeConfig;
+      const date = pixelToDate(canvasX, viewStartDate, pixelsPerDay);
+
+      if (targetSlId && date) {
+        const id = state.addMilestone({
+          name: '里程碑',
+          swimlaneId: targetSlId,
+          date,
+          color: '#E74C3C',
+        });
+        state.setSelection([id]);
+      }
     }
 
     if (dragMode === DragMode.Create) {
@@ -304,6 +336,7 @@ export function createInteractionHandlers(
     // Mode switching shortcuts
     if (e.key === 's' || e.key === 'S') state.setDragMode(DragMode.Idle);
     if (e.key === 'b' || e.key === 'B') state.setDragMode(DragMode.Create);
+    if (e.key === 'm' || e.key === 'M') state.setDragMode(DragMode.CreateMilestone);
     if (e.key === 'l' || e.key === 'L') state.setDragMode(DragMode.Link);
 
     // Delete selected — skip when focus is in a text input

@@ -23,21 +23,21 @@ const ExportDialog: React.FC<ExportDialogProps> = ({ onClose }) => {
         scope,
       });
 
-      // Save via Electron IPC
-      const api = (window as any).electronAPI;
-      if (api?.saveFile) {
-        const arrayBuffer = await blob.arrayBuffer();
-        const bytes = Array.from(new Uint8Array(arrayBuffer));
+      // Save via Neutralino native API
+      try {
         const ext = format === 'jpeg' ? 'jpg' : 'png';
-        await api.saveFile({
-          defaultName: `gantt-chart.${ext}`,
+        const savePath = await Neutralino.os.showSaveDialog('Export Image', {
+          defaultPath: `gantt-chart.${ext}`,
           filters: [{
             name: format === 'jpeg' ? 'JPEG Image' : 'PNG Image',
             extensions: [ext],
           }],
-          data: bytes,
         });
-      } else {
+        if (savePath) {
+          const arrayBuffer = await blob.arrayBuffer();
+          await Neutralino.filesystem.writeBinaryFile(savePath, arrayBuffer);
+        }
+      } catch {
         // Fallback: browser download
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

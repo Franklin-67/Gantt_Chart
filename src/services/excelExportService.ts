@@ -1,6 +1,6 @@
 /**
  * Excel export service — writes Gantt data to .xlsx via SheetJS.
- * Uses aoa_to_sheet (array of arrays) for total control over header format.
+ * Saves via Neutralinojs native save dialog.
  */
 
 import { useGanttStore } from '@/store';
@@ -87,25 +87,15 @@ export async function exportToExcel(
 
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-  const api = (window as any).electronAPI;
-  if (api?.saveFile) {
-    const bytes = Array.from(new Uint8Array(buf));
-    const result = await api.saveFile({
-      defaultName: 'gantt-export.xlsx',
-      filters: [{ name: 'Excel Workbook', extensions: ['xlsx'] }],
-      data: bytes,
-    });
-    if (!result) return { success: false, error: 'Cancelled' };
-  } else {
-    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'gantt-export.xlsx';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  // Save via Neutralino native dialog
+  const savePath = await Neutralino.os.showSaveDialog('Export Excel', {
+    defaultPath: 'gantt-export.xlsx',
+    filters: [{ name: 'Excel Workbook', extensions: ['xlsx'] }],
+  });
 
+  if (!savePath) return { success: false, error: 'Cancelled' };
+
+  await Neutralino.filesystem.writeBinaryFile(savePath, buf);
   return { success: true };
 }
 

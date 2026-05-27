@@ -2,12 +2,14 @@ import { GanttState } from '@/store';
 import { DragMode } from '@/model/types';
 import { dateToPixel } from '@/utils/dateUtils';
 import { getSwimlaneLayout } from '@/utils/swimlaneLayout';
+import { roundRect } from '@/utils/canvasUtils';
 import {
   SWIMLANE_HEADER_WIDTH,
   SWIMLANE_ROW_HEIGHT,
   BAR_HEIGHT,
   BAR_RADIUS,
   MIN_BAR_WIDTH,
+  MILESTONE_SIZE,
 } from '@/model/defaults';
 
 export function renderDragOverlay(
@@ -66,6 +68,38 @@ export function renderDragOverlay(
       ctx.fillStyle = 'rgba(74, 144, 217, 0.08)';
       ctx.fillRect(0, draggedRow.y, SWIMLANE_HEADER_WIDTH, draggedRow.height);
     }
+
+    return;
+  }
+
+  if (dragMode === DragMode.CreateMilestone) {
+    const layout = getSwimlaneLayout(swimlanes);
+    let targetSlY = startY;
+    for (const row of layout) {
+      if (startY >= row.y && startY < row.y + row.height) {
+        targetSlY = row.y;
+        break;
+      }
+    }
+    const cx = currentX;
+    const cy = targetSlY + SWIMLANE_ROW_HEIGHT / 2;
+    const hs = MILESTONE_SIZE / 2;
+
+    // Ghost diamond
+    ctx.fillStyle = 'rgba(231, 76, 60, 0.4)';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - hs);
+    ctx.lineTo(cx + hs, cy);
+    ctx.lineTo(cx, cy + hs);
+    ctx.lineTo(cx - hs, cy);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 2]);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     return;
   }
@@ -143,18 +177,4 @@ export function renderDragOverlay(
   }
 }
 
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number, r: number,
-): void {
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.closePath();
-}
+

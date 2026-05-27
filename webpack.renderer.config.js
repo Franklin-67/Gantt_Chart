@@ -35,8 +35,14 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './src/index.html',
         filename: 'index.html',
+        meta: {
+          'Content-Security-Policy': {
+            'http-equiv': 'Content-Security-Policy',
+            content: "default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-eval'; img-src 'self' data: blob:; connect-src 'self' ws: http://localhost:*",
+          },
+        },
       }),
     ],
-    devtool: isDev ? 'eval-source-map' : 'source-map',
+    devtool: isDev ? 'eval-source-map' : false,
   };
 };

@@ -1,12 +1,12 @@
 /**
  * Local persistence — saves/loads the full Gantt project state
- * via Electron IPC (main process writes to userData folder).
+ * via Neutralinojs storage API.
  */
 
 import { useGanttStore } from '@/store';
 
 const PROJECT_KEY = 'gantt-project';
-const SAVE_INTERVAL = 30000; // 30 seconds auto-save
+const SAVE_INTERVAL = 30000;
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -25,94 +25,74 @@ export function stopAutoSave(): void {
 }
 
 export async function saveProject(): Promise<boolean> {
-  const api = (window as any).electronAPI;
-  if (!api?.saveData) return false;
+  try {
+    const state = useGanttStore.getState();
 
-  const state = useGanttStore.getState();
+    const data: any = {
+      tasks: {},
+      milestones: {},
+      swimlanes: state.swimlanes,
+      dependencies: state.dependencies,
+      holidays: state.holidays,
+      weekendRule: state.weekendRule,
+      timeConfig: state.timeConfig,
+    };
 
-  // Serialize Maps to plain objects
-  const data: any = {
-    tasks: {},
-    milestones: {},
-    swimlanes: state.swimlanes,
-    dependencies: state.dependencies,
-    holidays: state.holidays,
-    weekendRule: state.weekendRule,
-    timeConfig: state.timeConfig,
-  };
+    for (const [id, task] of state.tasks) {
+      data.tasks[id] = task;
+    }
+    for (const [id, ms] of state.milestones) {
+      data.milestones[id] = ms;
+    }
 
-  for (const [id, task] of state.tasks) {
-    data.tasks[id] = task;
+    await Neutralino.storage.setData(PROJECT_KEY, JSON.stringify(data));
+    return true;
+  } catch (e) {
+    console.error('Failed to save project:', e);
+    return false;
   }
-  for (const [id, ms] of state.milestones) {
-    data.milestones[id] = ms;
-  }
-
-  return api.saveData(PROJECT_KEY, JSON.stringify(data));
 }
 
 export async function loadProject(): Promise<boolean> {
-  const api = (window as any).electronAPI;
-  if (!api?.loadData) return false;
-
-  const raw = await api.loadData(PROJECT_KEY);
-  if (!raw) return false;
-
   try {
+    const raw = await Neutralino.storage.getData(PROJECT_KEY);
+    if (!raw) return false;
+
     const data = JSON.parse(raw);
     const store = useGanttStore.getState();
 
-    // Clear existing data
     store.reset();
 
-    // Restore time config
     if (data.timeConfig) {
       store.setTimeConfig(data.timeConfig);
     }
-
-    // Restore swimlanes
     if (data.swimlanes) {
       for (const sl of data.swimlanes) {
         store.addSwimlane(sl.name, sl.parentId, sl.id);
       }
     }
-
-    // Restore tasks
     if (data.tasks) {
       for (const task of Object.values(data.tasks) as any[]) {
         store.addTask({
-          id: task.id,
-          name: task.name,
-          swimlaneId: task.swimlaneId,
-          startDate: task.startDate,
-          endDate: task.endDate,
-          color: task.color,
-          progress: task.progress,
+          id: task.id, name: task.name, swimlaneId: task.swimlaneId,
+          startDate: task.startDate, endDate: task.endDate,
+          color: task.color, progress: task.progress,
         });
       }
     }
-
-    // Restore milestones
     if (data.milestones) {
       for (const ms of Object.values(data.milestones) as any[]) {
         store.addMilestone({
-          id: ms.id,
-          name: ms.name,
-          swimlaneId: ms.swimlaneId,
-          date: ms.date,
-          color: ms.color,
+          id: ms.id, name: ms.name, swimlaneId: ms.swimlaneId,
+          date: ms.date, color: ms.color,
         });
       }
     }
-
-    // Restore dependencies
     if (data.dependencies) {
       for (const dep of data.dependencies) {
         store.addDependency(dep.fromItemId, dep.toItemId, dep.type);
       }
     }
-
-    // Restore holidays
     if (data.holidays) {
       for (const h of data.holidays) {
         store.addHoliday(h);

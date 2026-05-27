@@ -10,53 +10,32 @@ export function parseDate(isoStr: string): Date {
   return d;
 }
 
+const SHORT_CHINESE_MONTHS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+const FULL_CHINESE_MONTHS = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+
+type FormatFn = (date: Date, weekNum: number) => string;
+
+const FORMATTERS: Record<string, FormatFn> = {
+  'yyyy年': (date) => `${date.getFullYear()}年`,
+  'M月':    (date) => `${date.getMonth() + 1}月`,
+  'WW':     (_date, w) => String(w).padStart(2, '0'),
+  'W':      (_date, w) => String(w),
+  'MM':     (date) => String(date.getMonth() + 1).padStart(2, '0'),
+  'MMM':    (date) => SHORT_CHINESE_MONTHS[date.getMonth()],
+  'MMMM':   (date) => FULL_CHINESE_MONTHS[date.getMonth()],
+  'M':      (date) => String(date.getMonth() + 1),
+  'dd':     (date) => String(date.getDate()).padStart(2, '0'),
+  'd':      (date) => String(date.getDate()),
+  'yy':     (date) => String(date.getFullYear()).slice(-2),
+};
+
 export function formatDate(date: Date, fmt: string): string {
-  const y = date.getFullYear();
-  const M = date.getMonth();
-  const d = date.getDate();
-  const weekNum = getISOWeekNumber(date.toISOString().slice(0, 10));
-  
-  // Direct format matching, no complex string replacement
-  if (fmt === 'yyyy年') {
-    return String(y) + '年';
+  const formatter = FORMATTERS[fmt];
+  if (formatter) {
+    const weekNum = getISOWeekNumber(date.toISOString().slice(0, 10));
+    return formatter(date, weekNum);
   }
-  if (fmt === 'M月') {
-    return String(M + 1) + '月';
-  }
-  if (fmt === 'WW') {
-    return String(weekNum).padStart(2, '0');
-  }
-  if (fmt === 'W') {
-    return String(weekNum);
-  }
-  if (fmt === 'MM') {
-    return String(M + 1).padStart(2, '0');
-  }
-  if (fmt === 'MMM') {
-    const shortChineseMonths = ['一', '二', '三', '四', '五', '六', 
-                                 '七', '八', '九', '十', '十一', '十二'];
-    return shortChineseMonths[M];
-  }
-  if (fmt === 'MMMM') {
-    const chineseMonths = ['一月', '二月', '三月', '四月', '五月', '六月', 
-                           '七月', '八月', '九月', '十月', '十一月', '十二月'];
-    return chineseMonths[M];
-  }
-  if (fmt === 'M') {
-    return String(M + 1);
-  }
-  if (fmt === 'dd') {
-    return String(d).padStart(2, '0');
-  }
-  if (fmt === 'd') {
-    return String(d);
-  }
-  if (fmt === 'yy') {
-    return String(y).slice(-2);
-  }
-  
-  // Default fallback - if none of the above match, return simple format
-  return String(M + 1) + '/' + d;
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 /** Get the number of days between two ISO dates */

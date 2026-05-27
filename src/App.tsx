@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import TaskPaneShell from '@/components/layout/TaskPaneShell';
 import { useGanttStore } from '@/store';
-import { setupAutoSave, stopAutoSave } from '@/services/storageService';
+import { setupAutoSave, stopAutoSave, saveProject, loadProject } from '@/services/storageService';
 
 const App: React.FC = () => {
   const timeConfig = useGanttStore((s) => s.timeConfig);
@@ -11,48 +11,32 @@ const App: React.FC = () => {
   const addDependency = useGanttStore((s) => s.addDependency);
 
   useEffect(() => {
+    // Save on window close (Neutralino event)
+    let saved = false;
+    const handleClose = () => {
+      if (!saved) {
+        saveProject();
+        saved = true;
+      }
+    };
+
+    // Listen for app-close broadcast from backend
+    const onBroadcast = (evt: any) => {
+      if (evt?.detail === 'app:before-close') handleClose();
+    };
+    window.addEventListener('app:before-close', onBroadcast);
+
     const store = useGanttStore.getState();
 
     async function restoreOrInit() {
-      const api = (window as any).electronAPI;
-      if (api?.loadData) {
-        try {
-          const data = await api.loadData('gantt-project');
-          if (data) {
-            const parsed = JSON.parse(data);
-            if (parsed.swimlanes) {
-              parsed.swimlanes.forEach((s: any) => {
-                const existing = store.swimlanes.find((x) => x.id === s.id);
-                if (!existing) store.addSwimlane(s.name, s.parentId, s.id);
-              });
-            }
-            if (parsed.tasks) {
-              Object.values(parsed.tasks).forEach((t: any) => {
-                store.addTask({
-                  id: t.id, name: t.name, swimlaneId: t.swimlaneId,
-                  startDate: t.startDate, endDate: t.endDate,
-                  color: t.color, progress: t.progress,
-                });
-              });
-            }
-            if (parsed.milestones) {
-              Object.values(parsed.milestones).forEach((m: any) => {
-                store.addMilestone({
-                  id: m.id, name: m.name, swimlaneId: m.swimlaneId,
-                  date: m.date, color: m.color,
-                });
-              });
-            }
-            if (parsed.dependencies) {
-              parsed.dependencies.forEach((d: any) => {
-                store.addDependency(d.fromItemId, d.toItemId, d.type);
-              });
-            }
-            setupAutoSave();
-            return;
-          }
-        } catch { /* fall through to demo */ }
-      }
+      // Try loading saved project via Neutralino storage
+      try {
+        const loaded = await loadProject();
+        if (loaded) {
+          setupAutoSave();
+          return;
+        }
+      } catch { /* fall through to demo */ }
 
       if (store.swimlanes.length === 0) {
         initDemoData(addSwimlane, addTask, addMilestone, addDependency);
@@ -61,7 +45,10 @@ const App: React.FC = () => {
     }
 
     restoreOrInit();
-    return () => stopAutoSave();
+    return () => {
+      stopAutoSave();
+      window.removeEventListener('app:before-close', onBroadcast);
+    };
   }, []);
 
   if (!timeConfig) {

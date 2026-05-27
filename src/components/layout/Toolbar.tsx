@@ -66,6 +66,13 @@ const Toolbar: React.FC<ToolbarProps> = ({ onImportExcel, onExportExcel, onExpor
           ▬
         </button>
         <button
+          className={`toolbar__btn ${dragMode === DragMode.CreateMilestone ? 'active' : ''}`}
+          onClick={() => setDragMode(DragMode.CreateMilestone)}
+          title="创建里程碑 (M)"
+        >
+          ◆
+        </button>
+        <button
           className={`toolbar__btn ${dragMode === DragMode.Link ? 'active' : ''}`}
           onClick={() => setDragMode(DragMode.Link)}
           title="创建依赖 (L)"

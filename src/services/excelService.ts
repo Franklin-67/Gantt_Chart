@@ -1,6 +1,8 @@
 /**
  * Excel import service — reads .xlsx/.csv files via SheetJS
  * and maps columns to Gantt tasks/milestones.
+ *
+ * Uses Neutralinojs native API for file dialog + file reading.
  */
 
 import { useGanttStore } from '@/store';
@@ -32,7 +34,6 @@ function mapColumns(headers: string[]): Record<string, number> {
 
 function excelDateToISO(val: unknown): string {
   if (typeof val === 'number') {
-    // Excel serial date
     const d = new Date((val - 25569) * 86400 * 1000);
     return d.toISOString().slice(0, 10);
   }
@@ -50,10 +51,10 @@ export interface ImportResult {
   errors: string[];
 }
 
-export async function importFromExcel(
+export function importFromExcel(
   data: ArrayBuffer,
   store: ReturnType<typeof useGanttStore.getState>,
-): Promise<ImportResult> {
+): ImportResult {
   const errors: string[] = [];
   const workbook = XLSX.read(data, { type: 'array' });
   const sheetName = workbook.SheetNames[0];
@@ -71,7 +72,6 @@ export async function importFromExcel(
     return { tasks: 0, milestones: 0, swimlanes: 0, errors: ['Could not find a task name column. Expected headers: 任务名称, Task, Name, etc.'] };
   }
 
-  // Collect unique swimlanes and create them
   const swimlaneNames = new Set<string>();
   const swimlaneMap = new Map<string, string>();
 
@@ -82,7 +82,6 @@ export async function importFromExcel(
     swimlaneNames.add(slName);
   }
 
-  // Create swimlanes
   for (const name of swimlaneNames) {
     const existing = store.swimlanes.find((s) => s.name === name);
     if (existing) {
@@ -111,52 +110,35 @@ export async function importFromExcel(
 
     if (startDate && endDate) {
       store.addTask({
-        name,
-        swimlaneId,
-        startDate,
-        endDate,
-        color,
-        progress: Math.min(100, Math.max(0, progress)),
+        name, swimlaneId, startDate, endDate,
+        color, progress: Math.min(100, Math.max(0, progress)),
       });
       taskCount++;
     } else if (startDate) {
-      // Only start date → milestone
-      store.addMilestone({
-        name,
-        swimlaneId,
-        date: startDate,
-        color,
-      });
+      store.addMilestone({ name, swimlaneId, date: startDate, color });
       milestoneCount++;
     } else {
       errors.push(`Row ${i + 1}: "${name}" — missing start date`);
     }
   }
 
-  return {
-    tasks: taskCount,
-    milestones: milestoneCount,
-    swimlanes: swimlaneNames.size,
-    errors,
-  };
+  return { tasks: taskCount, milestones: milestoneCount, swimlanes: swimlaneNames.size, errors };
 }
 
 /**
- * Open file dialog and import Excel file through Electron IPC.
+ * Open file dialog via Neutralino native API and import Excel file.
  */
 export async function importExcelViaDialog(): Promise<ImportResult | null> {
-  const api = (window as any).electronAPI;
-  if (!api?.openFile) {
-    throw new Error('File dialog not available. Run inside Electron app.');
-  }
+  const paths = await Neutralino.os.showOpenDialog('Import Excel', {
+    filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls', 'csv'] }],
+  });
 
-  const file = await api.openFile([{
-    name: 'Excel Files',
-    extensions: ['xlsx', 'xls', 'csv'],
-  }]);
+  if (!paths || paths.length === 0) return null;
 
-  if (!file) return null; // User cancelled
+  const buffer = await Neutralino.filesystem.readBinaryFile(paths[0]);
 
+  // Convert ArrayBuffer to Uint8Array for SheetJS
+  const data = new Uint8Array(buffer);
   const store = useGanttStore.getState();
-  return importFromExcel(file.buffer, store);
+  return importFromExcel(data.buffer, store);
 }
