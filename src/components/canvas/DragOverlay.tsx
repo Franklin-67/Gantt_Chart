@@ -30,7 +30,7 @@ export function renderDragOverlay(
 
   // --- Swimlane reorder indicator ---
   if (dragMode === DragMode.ReorderSwimlane && reorderSwimlaneId) {
-    const layout = getSwimlaneLayout(swimlanes);
+    const layout = getSwimlaneLayout(swimlanes, state.rowHeight);
 
     // Find insertion index
     let insertIdx = layout.length;
@@ -73,7 +73,7 @@ export function renderDragOverlay(
   }
 
   if (dragMode === DragMode.CreateMilestone) {
-    const layout = getSwimlaneLayout(swimlanes);
+    const layout = getSwimlaneLayout(swimlanes, state.rowHeight);
     let targetSlY = startY;
     for (const row of layout) {
       if (startY >= row.y && startY < row.y + row.height) {
@@ -108,7 +108,7 @@ export function renderDragOverlay(
     const left = Math.min(startX, currentX);
     const barWidth = Math.max(Math.abs(currentX - startX), MIN_BAR_WIDTH);
 
-    const layout = getSwimlaneLayout(swimlanes);
+    const layout = getSwimlaneLayout(swimlanes, state.rowHeight);
     let targetSlY = startY;
     for (const row of layout) {
       if (startY >= row.y && startY < row.y + row.height) {
@@ -146,7 +146,7 @@ export function renderDragOverlay(
     const sourceItem = state.tasks.get(interaction.linkSourceId)
       || state.milestones.get(interaction.linkSourceId);
     if (sourceItem) {
-      const slRow = getSwimlaneLayout(swimlanes).find(r => r.id === sourceItem.swimlaneId);
+      const slRow = getSwimlaneLayout(swimlanes, state.rowHeight).find(r => r.id === sourceItem.swimlaneId);
       if (slRow) {
         const y = slRow.y + SWIMLANE_ROW_HEIGHT / 2;
         let sx: number;

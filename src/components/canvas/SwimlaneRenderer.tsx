@@ -9,7 +9,7 @@ export function renderSwimlanes(
   state: GanttState,
 ): void {
   const { swimlanes } = state;
-  const layout = getSwimlaneLayout(swimlanes);
+  const layout = getSwimlaneLayout(swimlanes, state.rowHeight);
 
   // Fixed top-left corner (above swimlane headers, left of timeline)
   ctx.fillStyle = '#e0e2ea';
@@ -18,7 +18,7 @@ export function renderSwimlanes(
   ctx.font = 'bold 11px "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('任务 / 泳道', SWIMLANE_HEADER_WIDTH / 2, TIMELINE_TOTAL_HEIGHT / 2);
+  ctx.fillText(state.headerLabel, SWIMLANE_HEADER_WIDTH / 2, TIMELINE_TOTAL_HEIGHT / 2);
 
   for (const row of layout) {
     const indent = row.depth * 16;

@@ -20,12 +20,12 @@
   --accent: #4A90D9;
   --accent-hover: #357ABD;
   --danger: #E74C3C;
-  --toolbar-height: 40px;
+  --toolbar-height: 56px;
   --panel-width: 260px;
   --font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-size-sm: 11px;
-  --font-size: 12px;
-  --font-size-lg: 13px;
+  --font-size-sm: 10px;
+  --font-size: 11px;
+  --font-size-lg: 12px;
 }
 
 html, body, #root {
@@ -69,40 +69,50 @@ html, body, #root {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   height: var(--toolbar-height);
-  padding: 0 8px;
+  padding: 0 12px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+
+.toolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .toolbar__group {
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 .toolbar__divider {
   width: 1px;
-  height: 20px;
+  height: 24px;
   background: var(--border-color);
   margin: 0 4px;
+  flex-shrink: 0;
 }
 
 .toolbar__btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 28px;
+  width: 28px;
+  height: 26px;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: var(--font-size);
-  transition: background 0.1s;
+  font-size: 12px;
+  transition: all 0.15s;
+  flex-shrink: 0;
 }
 
 .toolbar__btn:hover {
@@ -117,9 +127,25 @@ html, body, #root {
 
 .toolbar__btn--text {
   width: auto;
-  padding: 0 8px;
-  font-size: var(--font-size-sm);
+  min-width: 44px;
+  padding: 4px 8px;
+  font-size: 11px;
   font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.toolbar__btn--date {
+  min-width: 130px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.toolbar__btn--action {
+  min-width: 50px;
+  padding: 4px 10px;
 }
 
 .toolbar__btn--primary-outline {
@@ -132,36 +158,123 @@ html, body, #root {
   color: white;
 }
 
+.toolbar__mode-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
 .toolbar__font-select {
-  height: 24px;
+  height: 22px;
+  width: 52px;
+  font-size: 10px;
   padding: 0 4px;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: var(--font-size-sm);
-  font-family: var(--font-family);
+  border-radius: 3px;
+  background: white;
   color: var(--text-primary);
-  background: transparent;
-  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.toolbar__font-select:focus {
-  outline: none;
-  border-color: var(--accent);
+.toolbar__row-slider {
+  width: 50px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
-.toolbar__mode-label {
-  font-size: var(--font-size-sm);
+.toolbar__row-value {
+  font-size: 10px;
   color: var(--text-muted);
-  padding: 0 4px;
-  min-width: 50px;
+  min-width: 32px;
+  text-align: right;
+}
+
+.toolbar__spacer {
+  flex: 1;
+  min-width: 20px;
+}
+
+.toolbar__template-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.toolbar__template-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.toolbar__template-loading {
+  padding: 16px;
   text-align: center;
+  color: #666;
+  font-size: 12px;
+}
+
+.toolbar__template-empty {
+  padding: 16px;
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+}
+
+.toolbar__template-hint {
+  font-size: 11px;
+  margin-top: 4px;
+  color: #bbb;
+}
+
+.toolbar__template-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.toolbar__template-item:last-child {
+  border-bottom: none;
+}
+
+.toolbar__template-item:hover {
+  background-color: #f5f7fa;
+}
+
+.toolbar__template-name {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.toolbar__template-date {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.toolbar__dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
 }
 
 /* ---------- Canvas Area ---------- */
 
 .canvas-container {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   background: var(--bg-primary);
   cursor: default;

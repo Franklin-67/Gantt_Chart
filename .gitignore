@@ -3,5 +3,6 @@ dist/
 bin/
 release/
 .neu-tmp/
+.storage/
 .DS_Store
 *.log

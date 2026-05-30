@@ -23,7 +23,7 @@ export interface SwimlaneRow {
  * Returns visible swimlane rows in render order, with correct Y positions.
  * Accounts for hierarchy and collapse state.
  */
-export function getSwimlaneLayout(swimlanes: Swimlane[]): SwimlaneRow[] {
+export function getSwimlaneLayout(swimlanes: Swimlane[], rowHeight = SWIMLANE_ROW_HEIGHT): SwimlaneRow[] {
   const rows: SwimlaneRow[] = [];
   const topLevel = swimlanes.filter((s) => !s.parentId);
 
@@ -38,10 +38,10 @@ export function getSwimlaneLayout(swimlanes: Swimlane[]): SwimlaneRow[] {
       collapsed: !!sl.collapsed,
       depth,
       y,
-      height: SWIMLANE_ROW_HEIGHT,
+      height: rowHeight,
       order: rowOrder++,
     });
-    y += SWIMLANE_ROW_HEIGHT;
+    y += rowHeight;
 
     if (!sl.collapsed) {
       const children = swimlanes.filter((s) => s.parentId === sl.id);
@@ -58,12 +58,9 @@ export function getSwimlaneLayout(swimlanes: Swimlane[]): SwimlaneRow[] {
   return rows;
 }
 
-/**
- * Returns a Map from swimlane ID to its visual Y position.
- */
-export function getSwimlaneYMap(swimlanes: Swimlane[]): Map<string, number> {
+export function getSwimlaneYMap(swimlanes: Swimlane[], rowHeight?: number): Map<string, number> {
   const map = new Map<string, number>();
-  for (const row of getSwimlaneLayout(swimlanes)) {
+  for (const row of getSwimlaneLayout(swimlanes, rowHeight)) {
     map.set(row.id, row.y);
   }
   return map;

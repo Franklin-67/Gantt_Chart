@@ -2,40 +2,71 @@
  * Excel import service — reads .xlsx/.csv files via SheetJS
  * and maps columns to Gantt tasks/milestones.
  *
- * Uses Neutralinojs native API for file dialog + file reading.
+ * Uses Neutralino native API with browser fallback
  */
 
 import { useGanttStore } from '@/store';
 import * as XLSX from 'xlsx';
+import { showOpenDialog, getBrowserTempFile, readBinaryFile, isNeutralinoFileSystemAvailable } from './storageManager';
 
 const COLUMN_ALIASES: Record<string, string[]> = {
-  name: ['任务名称', '名称', 'Task', 'Name', '任务', '活动', 'Activity'],
-  startDate: ['开始日期', '开始', 'Start', '开始时间', '起始'],
-  endDate: ['结束日期', '结束', 'End', '结束时间', '截止'],
-  swimlane: ['分类', '泳道', '负责人', '类别', 'Category', 'Group', 'Swimlane', '分组'],
-  progress: ['进度', 'Progress', '%'],
-  color: ['颜色', 'Color'],
-  label: ['标签', '备注', 'Label', 'Note'],
+  name: ['任务名称', '名称', 'Task', 'Name', '任务', '活动', 'Activity', '标题', 'Title', 'tasks', 'task', 'name', 'TASK', 'NAME', '任务名'],
+  startDate: ['开始日期', '开始时间', 'Start', 'start', 'StartDate', 'start_date'],
+  endDate: ['结束日期', '结束时间', 'End', 'end', 'EndDate', 'end_date'],
+  swimlane: ['泳道', '分类', '负责人', '类别', 'Category', 'Group', 'Swimlane', 'swimlane', 'group', 'category', '部门', '团队'],
+  progress: ['进度', 'Progress', 'progress', '完成进度', '完成率'],
+  color: ['颜色', 'Color', 'color', '色彩'],
+  label: ['标签', '备注', 'Label', 'Note', 'label', 'note', '说明', '描述'],
 };
+
+/**
+ * Clean a header string: trim whitespace, remove BOM/zero-width chars,
+ * collapse internal whitespace to single spaces, lowercase.
+ */
+function cleanHeader(header: string): string {
+  return String(header || '')
+    .trim()
+    .replace(/[﻿​‌‍⁠]/g, '')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+/**
+ * Check whether a cleaned header matches a cleaned alias.
+ */
+function aliasMatch(header: string, alias: string): boolean {
+  const h = cleanHeader(header);
+  const a = cleanHeader(alias);
+  return h.length > 0 && (h === a || h.includes(a) || a.includes(h));
+}
 
 function mapColumns(headers: string[]): Record<string, number> {
   const mapping: Record<string, number> = {};
+
   for (let i = 0; i < headers.length; i++) {
-    const h = headers[i].trim();
+    const h = cleanHeader(String(headers[i] || ''));
+
     for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
-      if (aliases.some((a) => h.toLowerCase() === a.toLowerCase()) && !(field in mapping)) {
+      if (field in mapping) continue;
+
+      if (aliases.some((a) => aliasMatch(h, a))) {
         mapping[field] = i;
+        console.log('[import] Column', i, `"${headers[i]}"`, '->', field);
         break;
       }
     }
   }
+
+  console.log('[import] Mapping:', JSON.stringify(mapping));
+  console.log('[import] Columns found:', Object.keys(mapping).join(', '));
   return mapping;
 }
 
 function excelDateToISO(val: unknown): string {
   if (typeof val === 'number') {
+    // Excel serial date (days since 1900-01-01 with the 1900 leap-year bug)
     const d = new Date((val - 25569) * 86400 * 1000);
-    return d.toISOString().slice(0, 10);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
   }
   if (typeof val === 'string') {
     const d = new Date(val);
@@ -59,29 +90,65 @@ export function importFromExcel(
   const workbook = XLSX.read(data, { type: 'array' });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
+
+  console.log('[import] Reading sheet:', sheetName, 'sheets available:', workbook.SheetNames.join(', '));
+
+  // defval: '' ensures empty cells are '' instead of undefined
+  const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '' });
+
+  console.log('[import] Total rows (including header):', rows.length);
 
   if (rows.length < 2) {
     return { tasks: 0, milestones: 0, swimlanes: 0, errors: ['Empty or invalid file'] };
   }
 
   const headers = rows[0] as string[];
+  console.log('[import] Headers:', headers.map((h, i) => `[${i}] "${h}"`).join(', '));
   const mapping = mapColumns(headers);
 
-  if (!mapping['name']) {
-    return { tasks: 0, milestones: 0, swimlanes: 0, errors: ['Could not find a task name column. Expected headers: 任务名称, Task, Name, etc.'] };
+  if (mapping['name'] === undefined) {
+    const headerList = headers.map((h, i) => `列${i + 1}: "${h || '(空)'}"`).join(', ');
+    return {
+      tasks: 0, milestones: 0, swimlanes: 0,
+      errors: [`找不到任务名称列。检测到的表头: ${headerList}\n支持的名称列: ${COLUMN_ALIASES.name.join(', ')}`],
+    };
   }
 
+  // ---- Clear existing content before import ----
+  store.reset();
+  console.log('[import] Cleared existing content');
+
+  // ---- First pass: collect swimlane names ----
   const swimlaneNames = new Set<string>();
   const swimlaneMap = new Map<string, string>();
+  let skippedRows = 0;
+  const skippedReasons: string[] = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || !row[mapping['name']]) continue;
-    const slName = (mapping['swimlane'] !== undefined ? String(row[mapping['swimlane']] || '') : '') || 'Default';
+    const nameVal = row[mapping['name']];
+    const nameStr = typeof nameVal === 'string' ? nameVal.trim() : String(nameVal || '').trim();
+
+    if (!nameStr) {
+      skippedRows++;
+      if (skippedReasons.length < 5) {
+        skippedReasons.push(`Row ${i + 1}: empty name (value=${JSON.stringify(nameVal)})`);
+      }
+      continue;
+    }
+
+    const slNameRaw = mapping['swimlane'] !== undefined ? row[mapping['swimlane']] : '';
+    const slName = (typeof slNameRaw === 'string' ? slNameRaw.trim() : String(slNameRaw || '').trim()) || 'Default';
     swimlaneNames.add(slName);
   }
 
+  console.log('[import] Swimlane names found:', [...swimlaneNames]);
+  console.log('[import] Rows skipped (no name):', skippedRows);
+  if (skippedReasons.length > 0) {
+    console.log('[import] Skip reasons (first 5):', skippedReasons);
+  }
+
+  // ---- Create swimlanes ----
   for (const name of swimlaneNames) {
     const existing = store.swimlanes.find((s) => s.name === name);
     if (existing) {
@@ -89,18 +156,22 @@ export function importFromExcel(
     } else {
       const id = store.addSwimlane(name);
       swimlaneMap.set(name, id);
+      console.log('[import] Created swimlane:', name);
     }
   }
 
+  // ---- Second pass: create tasks/milestones ----
   let taskCount = 0;
   let milestoneCount = 0;
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || !row[mapping['name']]) continue;
+    const nameVal = row[mapping['name']];
+    const name = (typeof nameVal === 'string' ? nameVal : String(nameVal || '')).trim();
+    if (!name) continue;
 
-    const name = String(row[mapping['name']]).trim();
-    const slName = (mapping['swimlane'] !== undefined ? String(row[mapping['swimlane']] || '') : '') || 'Default';
+    const slNameRaw = mapping['swimlane'] !== undefined ? row[mapping['swimlane']] : '';
+    const slName = (typeof slNameRaw === 'string' ? slNameRaw.trim() : String(slNameRaw || '').trim()) || 'Default';
     const swimlaneId = swimlaneMap.get(slName) || '';
     const color = mapping['color'] !== undefined ? String(row[mapping['color']] || '#4A90D9') : '#4A90D9';
     const progress = mapping['progress'] !== undefined ? Number(row[mapping['progress']]) || 0 : 0;
@@ -122,23 +193,61 @@ export function importFromExcel(
     }
   }
 
+  console.log('[import] Done: tasks=', taskCount, 'milestones=', milestoneCount, 'swimlanes=', swimlaneNames.size);
+  if (errors.length > 0) console.log('[import] Errors:', errors);
+
   return { tasks: taskCount, milestones: milestoneCount, swimlanes: swimlaneNames.size, errors };
 }
 
 /**
- * Open file dialog via Neutralino native API and import Excel file.
+ * Open file dialog and import Excel file.
  */
 export async function importExcelViaDialog(): Promise<ImportResult | null> {
-  const paths = await Neutralino.os.showOpenDialog('Import Excel', {
-    filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls', 'csv'] }],
-  });
+  try {
+    console.log('[import] Starting Excel import...');
 
-  if (!paths || paths.length === 0) return null;
+    const paths = await showOpenDialog('Import Excel', {
+      filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls', 'csv'] }],
+    });
 
-  const buffer = await Neutralino.filesystem.readBinaryFile(paths[0]);
+    if (!paths || paths.length === 0) {
+      console.log('[import] User cancelled');
+      return null;
+    }
 
-  // Convert ArrayBuffer to Uint8Array for SheetJS
-  const data = new Uint8Array(buffer);
-  const store = useGanttStore.getState();
-  return importFromExcel(data.buffer, store);
+    console.log('[import] Reading file:', paths[0]);
+
+    let buffer: ArrayBuffer | null = null;
+
+    if (paths[0].startsWith('__temp_file_')) {
+      buffer = await getBrowserTempFile(paths[0]);
+    } else if (isNeutralinoFileSystemAvailable()) {
+      buffer = await readBinaryFile(paths[0]);
+    } else {
+      try {
+        const response = await fetch(`file://${paths[0]}`);
+        buffer = await response.arrayBuffer();
+      } catch {
+        console.error('[import] fetch file:// failed');
+      }
+    }
+
+    if (!buffer) {
+      console.error('[import] Failed to read file');
+      return { tasks: 0, milestones: 0, swimlanes: 0, errors: ['Failed to read file'] };
+    }
+
+    console.log('[import] File read, size:', buffer.byteLength);
+
+    const data = new Uint8Array(buffer);
+    const store = useGanttStore.getState();
+
+    const result = importFromExcel(data.buffer, store);
+    console.log('[import] Result:', result);
+
+    return result;
+  } catch (err: any) {
+    console.error('[import] Failed:', err);
+    return { tasks: 0, milestones: 0, swimlanes: 0, errors: [err.message || 'Import failed'] };
+  }
 }

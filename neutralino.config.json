@@ -19,6 +19,7 @@
   "modes": {
     "window": {
       "title": "Gantt Chart",
+      "enableInspector": true,
       "width": 1400,
       "height": 900,
       "minWidth": 1000,
@@ -37,6 +38,6 @@
     "resourcesPath": "/dist/renderer/",
     "extensionsPath": "/extensions/",
     "clientLibrary": "/node_modules/@neutralinojs/lib/dist/neutralino.js",
-    "binaryVersion": "nightly"
+    "binaryVersion": "latest"
   }
 }

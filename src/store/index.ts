@@ -15,7 +15,7 @@ import {
   DragMode,
   DependencyType,
 } from '@/model/types';
-import { createDefaultTimeConfig, DEFAULT_WEEKEND_RULE, SWIMLANE_HEADER_WIDTH } from '@/model/defaults';
+import { createDefaultTimeConfig, DEFAULT_WEEKEND_RULE, SWIMLANE_HEADER_WIDTH, SWIMLANE_ROW_HEIGHT } from '@/model/defaults';
 import { daysBetween } from '@/utils/dateUtils';
 
 export interface GanttState {
@@ -35,7 +35,9 @@ export interface GanttState {
   view: ViewState;
   selection: SelectionState;
   interaction: InteractionState;
-	  selectedSwimlaneId: string | null;
+  selectedSwimlaneId: string | null;
+  rowHeight: number;
+  headerLabel: string;
 
   // Actions
   addTask: (data: Omit<GanttTask, 'id'> & { id?: string }) => string;
@@ -67,6 +69,8 @@ export interface GanttState {
   setInteraction: (patch: Partial<InteractionState>) => void;
   setDragMode: (mode: DragMode) => void;
   setHeaderFontSizes: (index: number, size: number) => void;
+  setRowHeight: (h: number) => void;
+  setHeaderLabel: (label: string) => void;
 
   getItemById: (id: string) => GanttTask | Milestone | undefined;
   getItemsForSwimlane: (swimlaneId: string) => (GanttTask | Milestone)[];
@@ -92,6 +96,8 @@ export const useGanttStore = create<GanttState>((set, get) => ({
     dragCurrent: { x: 0, y: 0 },
   },
   selectedSwimlaneId: null,
+  rowHeight: SWIMLANE_ROW_HEIGHT,
+  headerLabel: 'Task / Item',
 
   // --- Task actions ---
   addTask: (data) => {
@@ -296,6 +302,9 @@ export const useGanttStore = create<GanttState>((set, get) => ({
     return { headerFontSizes: sizes };
   }),
 
+  setRowHeight: (h) => set({ rowHeight: Math.max(30, Math.min(80, h)) }),
+  setHeaderLabel: (label) => set({ headerLabel: label }),
+
   // --- Queries ---
   getItemById: (id) => {
     const state = get();
@@ -334,7 +343,9 @@ export const useGanttStore = create<GanttState>((set, get) => ({
         dragOrigin: { x: 0, y: 0 },
         dragCurrent: { x: 0, y: 0 },
       },
-	  selectedSwimlaneId: null,
+      selectedSwimlaneId: null,
+      rowHeight: SWIMLANE_ROW_HEIGHT,
+      headerLabel: 'Task / Item',
     });
   },
 }));

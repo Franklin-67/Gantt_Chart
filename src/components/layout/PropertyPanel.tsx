@@ -25,6 +25,10 @@ const PropertyPanel: React.FC = () => {
   const selectSwimlane = useGanttStore((s) => s.selectSwimlane);
   const deleteTasks = useGanttStore((s) => s.deleteTasks);
   const deleteMilestones = useGanttStore((s) => s.deleteMilestones);
+  const dependencies = useGanttStore((s) => s.dependencies);
+  const removeDependency = useGanttStore((s) => s.removeDependency);
+  const tasks = useGanttStore((s) => s.tasks);
+  const milestones = useGanttStore((s) => s.milestones);
 
   const handleDelete = useCallback(() => {
     if (selectedIds.length > 0) {
@@ -168,6 +172,61 @@ const PropertyPanel: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {(() => {
+        // Find dependencies involving this item
+        const relDeps = dependencies.filter(
+          (d) => d.fromItemId === item.id || d.toItemId === item.id,
+        );
+        if (relDeps.length === 0) return null;
+
+        function getItemName(id: string) {
+          return tasks.get(id)?.name || milestones.get(id)?.name || id;
+        }
+
+        return (
+          <div className="property-group">
+            <label className="property-group__label">依赖关系</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {relDeps.map((dep) => (
+                <div
+                  key={dep.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: 11,
+                    padding: '4px 6px',
+                    background: '#f8f9fa',
+                    borderRadius: 4,
+                  }}
+                >
+                  <span>
+                    {getItemName(dep.fromItemId)} → {getItemName(dep.toItemId)}
+                    <span style={{ color: 'var(--text-muted)', marginLeft: 4 }}>
+                      ({dep.type})
+                    </span>
+                  </span>
+                  <button
+                    className="dialog__btn"
+                    style={{
+                      padding: '2px 6px',
+                      fontSize: 10,
+                      color: 'var(--danger)',
+                      borderColor: 'transparent',
+                      background: 'transparent',
+                    }}
+                    onClick={() => removeDependency(dep.id)}
+                    title="删除此依赖"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="dialog__actions" style={{ marginTop: 16 }}>
         <button className="dialog__btn" onClick={handleDelete} style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}>

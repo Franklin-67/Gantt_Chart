@@ -16,7 +16,7 @@ export function renderDependencies(
   const { dependencies, tasks, milestones, swimlanes, timeConfig } = state;
   const { viewStartDate, pixelsPerDay } = timeConfig;
 
-  const swimlaneYMap = getSwimlaneYMap(swimlanes);
+  const swimlaneYMap = getSwimlaneYMap(swimlanes, state.rowHeight);
 
   ctx.save();
   ctx.beginPath();

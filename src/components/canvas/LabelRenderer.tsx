@@ -17,7 +17,7 @@ export function renderLabels(
   const { tasks, milestones, swimlanes, timeConfig } = state;
   const { viewStartDate, pixelsPerDay } = timeConfig;
 
-  const swimlaneYMap = getSwimlaneYMap(swimlanes);
+  const swimlaneYMap = getSwimlaneYMap(swimlanes, state.rowHeight);
 
   const placedLabels: { x: number; y: number; w: number; h: number }[] = [];
 

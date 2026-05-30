@@ -25,7 +25,7 @@ export function renderSelectionOverlay(
   ctx.rect(SWIMLANE_HEADER_WIDTH, 0, width - SWIMLANE_HEADER_WIDTH, height);
   ctx.clip();
 
-  const swimlaneYMap = getSwimlaneYMap(swimlanes);
+  const swimlaneYMap = getSwimlaneYMap(swimlanes, state.rowHeight);
 
   for (const id of selection.selectedIds) {
     const task = tasks.get(id);

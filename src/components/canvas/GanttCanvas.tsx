@@ -4,7 +4,7 @@ import { LayerManager } from '@/engine/renderer/LayerManager';
 import { RenderScheduler, LayerRenderer } from '@/engine/renderer/RenderScheduler';
 import { createInteractionHandlers } from '@/engine/interaction/InteractionManager';
 import { useKeyboard } from '@/hooks/useKeyboard';
-import { SWIMLANE_HEADER_WIDTH, TIMELINE_TOTAL_HEIGHT } from '@/model/defaults';
+import { SWIMLANE_HEADER_WIDTH, TIMELINE_TOTAL_HEIGHT, SWIMLANE_ROW_HEIGHT } from '@/model/defaults';
 import { renderTimeline } from './TimelineHeader';
 import { renderGridBackground } from './GridBackground';
 import { renderSwimlanes } from './SwimlaneRenderer';
@@ -183,6 +183,45 @@ const GanttCanvas: React.FC<GanttCanvasProps> = ({ onTimelineDoubleClick }) => {
     }
   }, [interactionHandlers]);
 
+  // Vertical scroll handling — canvas height grows with swimlanes
+  const totalRows = useGanttStore((s) => {
+    // Count visible rows including expanded children
+    let count = 0;
+    const topLevel = s.swimlanes.filter((sl) => !sl.parentId);
+    function walk(sl: typeof s.swimlanes[0]) {
+      count++;
+      if (!sl.collapsed) {
+        s.swimlanes.filter((c) => c.parentId === sl.id).forEach(walk);
+      }
+    }
+    topLevel.forEach(walk);
+    return count;
+  });
+
+  const canvasHeight = TIMELINE_TOTAL_HEIGHT + totalRows * SWIMLANE_ROW_HEIGHT + 100;
+
+  const handleScroll = useCallback(() => {
+    const parent = containerRef.current?.parentElement;
+    if (parent && schedulerRef.current) {
+      useGanttStore.getState().setView({ scrollTop: parent.scrollTop });
+      schedulerRef.current.markAllDirty();
+    }
+  }, []);
+
+  // Sync canvas height + attach scroll listener
+  useEffect(() => {
+    const el = containerRef.current;
+    const parent = el?.parentElement;
+    if (el) {
+      el.style.height = `${canvasHeight}px`;
+    }
+    if (parent) {
+      parent.addEventListener('scroll', handleScroll, { passive: true });
+      handleScroll();
+      return () => parent.removeEventListener('scroll', handleScroll);
+    }
+  }, [canvasHeight, handleScroll]);
+
   // Wheel is disabled — zoom controlled via toolbar buttons + date range dialog
 
   // Prevent default touch behavior
@@ -195,11 +234,12 @@ const GanttCanvas: React.FC<GanttCanvasProps> = ({ onTimelineDoubleClick }) => {
       ref={containerRef}
       style={{
         width: '100%',
-        height: '100%',
+        height: canvasHeight,
         position: 'relative',
         overflow: 'hidden',
         touchAction: 'none',
         cursor: 'default',
+        minHeight: '100%',
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

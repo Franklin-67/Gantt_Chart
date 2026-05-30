@@ -20,7 +20,7 @@ export function renderBars(
   const { tasks, milestones, swimlanes, timeConfig } = state;
   const { viewStartDate, pixelsPerDay } = timeConfig;
 
-  const swimlaneYMap = getSwimlaneYMap(swimlanes);
+  const swimlaneYMap = getSwimlaneYMap(swimlanes, state.rowHeight);
 
   // Clip to chart area (prevent bars from bleeding into swimlane header)
   ctx.save();

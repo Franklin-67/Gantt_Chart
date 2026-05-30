@@ -38,6 +38,7 @@ declare namespace Neutralino {
     function writeBinaryFile(path: string, data: ArrayBuffer): Promise<void>;
     function readFile(path: string): Promise<string>;
     function writeFile(path: string, data: string): Promise<void>;
+    function createDirectory(path: string): Promise<void>;
   }
 
   namespace storage {
@@ -51,9 +52,10 @@ declare namespace Neutralino {
     function dispatch(event: string, data?: any): void;
   }
 
-  function init(): void;
+  function init(): Promise<void>;
 }
 
 declare const NL_APPID: string;
+declare const NL_PATH: string;
 declare const NL_PORT: string;
 declare const NL_TOKEN: string;
