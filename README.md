@@ -286,6 +286,13 @@ export const DEFAULT_TIME_SCALES = [           // 时间刻度层级
 
 ## 📝 更新日志
 
+### v0.2.2 (2026-05-30)
+- ✅ 修复模板下拉菜单被工具栏裁剪遮挡（overflow-y: hidden）
+- ✅ 修复 Excel 导入泳道创建不全（Zustand 快照过期导致同名泳道被跳过）
+- ✅ 修复缩放后图表右侧出现大片空白（pixelsPerDay 基于缓存的 viewportWidth，与实际 DOM 宽度不一致）
+- ✅ 窗口大小变化时自动重算 pixelsPerDay，图表始终填满可视区域
+- ✅ 导入 Excel 后自动调用 fitViewToContent 适配全部数据
+
 ### v0.2.1 (2026-05-30)
 - ✅ 新增模板管理功能（保存 / 加载 / 重命名 / 删除），最多 10 个
 - ✅ 模板持久化到本地文件系统（多层存储引擎），重启不丢失

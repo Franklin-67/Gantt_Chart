@@ -5,6 +5,7 @@ import { RenderScheduler, LayerRenderer } from '@/engine/renderer/RenderSchedule
 import { createInteractionHandlers } from '@/engine/interaction/InteractionManager';
 import { useKeyboard } from '@/hooks/useKeyboard';
 import { SWIMLANE_HEADER_WIDTH, TIMELINE_TOTAL_HEIGHT, SWIMLANE_ROW_HEIGHT } from '@/model/defaults';
+import { daysBetween } from '@/utils/dateUtils';
 import { renderTimeline } from './TimelineHeader';
 import { renderGridBackground } from './GridBackground';
 import { renderSwimlanes } from './SwimlaneRenderer';
@@ -73,8 +74,20 @@ const GanttCanvas: React.FC<GanttCanvasProps> = ({ onTimelineDoubleClick }) => {
         const dpr = window.devicePixelRatio || 1;
         lm.resize(width, height, dpr);
         scheduler.setSize(width, height);
+        const storeState = useGanttStore.getState();
+        storeState.setView({ viewportWidth: width, viewportHeight: height });
+
+        // Recalculate pixelsPerDay for the new viewport width
+        // so the chart content fills the available area (fixes blank-space-on-zoom/resize)
+        const tc = storeState.timeConfig;
+        const chartW = Math.max(1, width - SWIMLANE_HEADER_WIDTH);
+        const totalDays = daysBetween(tc.viewStartDate, tc.viewEndDate);
+        const rawPpd = chartW / Math.max(totalDays, 1);
+        const ppx = Math.max(tc.minPixelsPerDay, Math.min(tc.maxPixelsPerDay, rawPpd));
+        if (Math.abs(ppx - tc.pixelsPerDay) > 0.01) {
+          storeState.setTimeConfig({ pixelsPerDay: ppx });
+        }
         scheduler.markAllDirty();
-        useGanttStore.getState().setView({ viewportWidth: width, viewportHeight: height });
       }
     });
     observer.observe(container);

@@ -76,6 +76,10 @@ export interface GanttState {
   getItemsForSwimlane: (swimlaneId: string) => (GanttTask | Milestone)[];
   getAllItems: () => (GanttTask | Milestone)[];
 
+  getProjectDateRange: () => { earliest: string; latest: string };
+  updateProjectRangeToFitItems: () => void;
+  fitViewToContent: () => void;
+
   reset: () => void;
 }
 
@@ -99,13 +103,78 @@ export const useGanttStore = create<GanttState>((set, get) => ({
   rowHeight: SWIMLANE_ROW_HEIGHT,
   headerLabel: 'Task / Item',
 
+  // --- Helper functions ---
+  getProjectDateRange: () => {
+    const state = get();
+    let earliest = state.timeConfig.projectStart;
+    let latest = state.timeConfig.projectEnd;
+
+    for (const task of state.tasks.values()) {
+      if (task.startDate < earliest) earliest = task.startDate;
+      if (task.endDate > latest) latest = task.endDate;
+    }
+    for (const ms of state.milestones.values()) {
+      if (ms.date < earliest) earliest = ms.date;
+      if (ms.date > latest) latest = ms.date;
+    }
+
+    return { earliest, latest };
+  },
+
+  updateProjectRangeToFitItems: () => {
+    set((state) => {
+      const { earliest, latest } = get().getProjectDateRange();
+      
+      const startDate = new Date(earliest);
+      startDate.setDate(startDate.getDate() - 7);
+      const endDate = new Date(latest);
+      endDate.setDate(endDate.getDate() + 7);
+
+      const newStart = startDate.toISOString().slice(0, 10);
+      const newEnd = endDate.toISOString().slice(0, 10);
+
+      return {
+        timeConfig: {
+          ...state.timeConfig,
+          projectStart: newStart,
+          projectEnd: newEnd,
+        },
+      };
+    });
+  },
+
+  fitViewToContent: () => {
+    const { earliest, latest } = get().getProjectDateRange();
+    
+    const startDate = new Date(earliest);
+    startDate.setDate(startDate.getDate() - 7);
+    const endDate = new Date(latest);
+    endDate.setDate(endDate.getDate() + 7);
+
+    get().setViewRange(startDate.toISOString().slice(0, 10), endDate.toISOString().slice(0, 10));
+  },
+
   // --- Task actions ---
   addTask: (data) => {
     const id = data.id ?? uuid();
     set((state) => {
       const newTasks = new Map(state.tasks);
       newTasks.set(id, { ...data, id });
-      return { tasks: newTasks };
+      
+      let newProjectStart = state.timeConfig.projectStart;
+      let newProjectEnd = state.timeConfig.projectEnd;
+      
+      if (data.startDate < newProjectStart) newProjectStart = data.startDate;
+      if (data.endDate > newProjectEnd) newProjectEnd = data.endDate;
+
+      return { 
+        tasks: newTasks,
+        timeConfig: {
+          ...state.timeConfig,
+          projectStart: newProjectStart,
+          projectEnd: newProjectEnd,
+        },
+      };
     });
     return id;
   },
@@ -144,7 +213,21 @@ export const useGanttStore = create<GanttState>((set, get) => ({
     set((state) => {
       const newMilestones = new Map(state.milestones);
       newMilestones.set(id, { ...data, id });
-      return { milestones: newMilestones };
+      
+      let newProjectStart = state.timeConfig.projectStart;
+      let newProjectEnd = state.timeConfig.projectEnd;
+      
+      if (data.date < newProjectStart) newProjectStart = data.date;
+      if (data.date > newProjectEnd) newProjectEnd = data.date;
+
+      return { 
+        milestones: newMilestones,
+        timeConfig: {
+          ...state.timeConfig,
+          projectStart: newProjectStart,
+          projectEnd: newProjectEnd,
+        },
+      };
     });
     return id;
   },
@@ -238,7 +321,10 @@ export const useGanttStore = create<GanttState>((set, get) => ({
   setViewRange: (startDate, endDate) => {
     set((state) => {
       const days = daysBetween(startDate, endDate);
-      const chartW = Math.max(1, (state.view.viewportWidth || 1200) - SWIMLANE_HEADER_WIDTH);
+      // Read actual container width from DOM — stored viewportWidth may be stale
+      const container = document.getElementById('gantt-canvas-container');
+      const containerWidth = container ? container.clientWidth : (state.view.viewportWidth || 1200);
+      const chartW = Math.max(1, containerWidth - SWIMLANE_HEADER_WIDTH);
       const rawPpd = chartW / Math.max(days, 1);
       const ppx = Math.max(state.timeConfig.minPixelsPerDay, Math.min(state.timeConfig.maxPixelsPerDay, rawPpd));
 

@@ -88,10 +88,15 @@ export function importFromExcel(
 ): ImportResult {
   const errors: string[] = [];
   const workbook = XLSX.read(data, { type: 'array' });
-  const sheetName = workbook.SheetNames[0];
+
+  // Prefer the Tasks sheet (exported by this app), otherwise use first sheet
+  let sheetName = workbook.SheetNames.find(
+    (n) => n.includes('Tasks') || n.includes('任务')
+  ) || workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
 
-  console.log('[import] Reading sheet:', sheetName, 'sheets available:', workbook.SheetNames.join(', '));
+  console.log('[import] Available sheets:', workbook.SheetNames.join(', '));
+  console.log('[import] Selected sheet:', sheetName);
 
   // defval: '' ensures empty cells are '' instead of undefined
   const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '' });
@@ -118,6 +123,12 @@ export function importFromExcel(
   store.reset();
   console.log('[import] Cleared existing content');
 
+  // Log first 10 raw rows for diagnostics
+  const sampleCount = Math.min(10, rows.length);
+  for (let i = 0; i < sampleCount; i++) {
+    console.log(`[import] Raw row[${i}]:`, JSON.stringify(rows[i]));
+  }
+
   // ---- First pass: collect swimlane names ----
   const swimlaneNames = new Set<string>();
   const swimlaneMap = new Map<string, string>();
@@ -131,8 +142,8 @@ export function importFromExcel(
 
     if (!nameStr) {
       skippedRows++;
-      if (skippedReasons.length < 5) {
-        skippedReasons.push(`Row ${i + 1}: empty name (value=${JSON.stringify(nameVal)})`);
+      if (skippedReasons.length < 10) {
+        skippedReasons.push(`Row ${i + 1}: empty name (nameVal=${JSON.stringify(nameVal)}, rowLen=${row ? row.length : 'null'}, rowFirst3=${JSON.stringify(row ? row.slice(0, 3) : [])})`);
       }
       continue;
     }
@@ -143,18 +154,21 @@ export function importFromExcel(
   }
 
   console.log('[import] Swimlane names found:', [...swimlaneNames]);
-  console.log('[import] Rows skipped (no name):', skippedRows);
+  console.log('[import] Rows skipped (no name):', skippedRows, 'of', rows.length - 1, 'data rows');
   if (skippedReasons.length > 0) {
-    console.log('[import] Skip reasons (first 5):', skippedReasons);
+    console.log('[import] Skip reasons:', skippedReasons);
   }
 
   // ---- Create swimlanes ----
+  // Use fresh getState() every iteration — the `store` snapshot captured
+  // before reset() holds stale swimlanes[] references.
   for (const name of swimlaneNames) {
-    const existing = store.swimlanes.find((s) => s.name === name);
+    const live = useGanttStore.getState();
+    const existing = live.swimlanes.find((s) => s.name === name);
     if (existing) {
       swimlaneMap.set(name, existing.id);
     } else {
-      const id = store.addSwimlane(name);
+      const id = live.addSwimlane(name);
       swimlaneMap.set(name, id);
       console.log('[import] Created swimlane:', name);
     }
@@ -195,6 +209,10 @@ export function importFromExcel(
 
   console.log('[import] Done: tasks=', taskCount, 'milestones=', milestoneCount, 'swimlanes=', swimlaneNames.size);
   if (errors.length > 0) console.log('[import] Errors:', errors);
+
+  // Auto-fit view to show all imported content
+  store.updateProjectRangeToFitItems();
+  store.fitViewToContent();
 
   return { tasks: taskCount, milestones: milestoneCount, swimlanes: swimlaneNames.size, errors };
 }

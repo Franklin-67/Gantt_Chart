@@ -22,6 +22,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onImportExcel, onExportExcel, onExpor
   const setHeaderFontSizes = useGanttStore((s) => s.setHeaderFontSizes);
   const rowHeight = useGanttStore((s) => s.rowHeight);
   const setRowHeight = useGanttStore((s) => s.setRowHeight);
+  const fitViewToContent = useGanttStore((s) => s.fitViewToContent);
 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
@@ -138,6 +139,9 @@ const Toolbar: React.FC<ToolbarProps> = ({ onImportExcel, onExportExcel, onExpor
           {viewStartDate} ~ {viewEndDate}
         </button>
         <button className="toolbar__btn" onClick={handleZoomIn} title="放大">+</button>
+        <button className="toolbar__btn toolbar__btn--text" onClick={fitViewToContent} title="适应内容">
+          ⟲
+        </button>
       </div>
 
       <div className="toolbar__divider" />
